@@ -23,6 +23,7 @@ def ngram_gen(input, gram=2):
 
     tokens = [token for token in input.split(" ") if token!=""]
     counts = Counter(list(ngrams(tokens, gram)))
+    
     return list(map(lambda x:(x[0], x[1]), counts.items()))
 
 if __name__ == "__main__":
