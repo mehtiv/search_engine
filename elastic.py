@@ -11,14 +11,22 @@ import re
 import string
 from functools import reduce
 
-
 stop_words = set(stopwords.words('english'))
 
-def clean_string(text):
+import operator
 
+def clean_string(text : str) -> str:
+    """[summary]
+        Clean a string removing stop word and special caracters
+    Arguments:
+        text {str} -- string to clean
+
+    Returns:
+        str -- cleaned string
+    """
+    
     text = text.lower().strip()
     spec_chars =  "([" + string.punctuation + "\° ].*?)"
-    #spec_chars = 
     text = re.sub(spec_chars, ' ', text)
     
     word_tokens = word_tokenize(text) 
@@ -26,7 +34,15 @@ def clean_string(text):
     return " ".join([w for w in word_tokens if not w in stop_words])
 
 
-def search(query):
+def search(query : str ) -> dict:
+    """[summary]
+        get result of a query from elasticsearch
+    Arguments:
+        query {str} -- [description]
+    
+    Returns:
+        dict -- [description]
+    """
 
     tuples = [('q',query)]
 
@@ -40,12 +56,21 @@ def search(query):
     return raw_response
 
 
-def ngram_gen(input, gram=2):
+def ngram_gen(input : str, gram:int =2) -> Counter:
+    """[summary]
+        calculate N_gram 
+    Arguments:
+        input {str} -- [description]
     
+    Keyword Arguments:
+        gram {int} -- [description] (default: {2})
+    
+    Returns:
+        Counter -- [description]
+    """
     tokens = [token for token in input.split(" ") if token!=""]
     counts = Counter(list(ngrams(tokens, gram)))
 
-    # return list(map(lambda x:(x[0], x[1]), counts.items()))
     return counts
 
 
@@ -69,9 +94,15 @@ def score_ngram(ngrams, type_text, coef = 0):
         return ngrams
 
 
+def sort_candidate(json_file):
+    
+
+    return sorted(json_file.items(), key=operator.itemgetter(1))
+
+
 if __name__ == "__main__":
 
-    queries = ['developer java', 'developer c#', 'web developer']
+    queries = ['data scientist', 'machine learning']
     search_res = search("OR".join(queries))
 
     results = search_res['hits']['hits']
@@ -82,41 +113,50 @@ if __name__ == "__main__":
 
     profiles = []
     experienc_score = [1, 0.5, 0.25]
-
+    
+    # calculate new score for each candidate from the results of elastic search
     for result in results:
+
         profile = {}
         profile["_id"] = result["_id"]
         profile["_index"] = result["_index"]
         profile["_score"] = result["_score"]
         experiences = result["_source"]["experience"]
-        print("")
+
+        
+        experience_total_score = 0
         for experience in experiences:
             n_grams = [score_ngram(cross_ngrams(clean_string(query), clean_string(experience['title'])), 'title') for query in queries]
-            n_grams_experience = [score_ngram(cross_ngrams(clean_string(query), clean_string(experience['description'])),'experience', 
-            coef=experience['duration']) for query in queries]
+            n_grams_experience = [score_ngram(cross_ngrams(clean_string(query), clean_string(experience['description'])),'experience', coef=experience['duration']) for query in queries]
             
             title_score = reduce(lambda a,b:a+b, n_grams)
             experience_score = reduce(lambda a,b: a+b, n_grams_experience)
 
-            experience["score"] = 0.5*sum(title_score.values()) + sum(experience_score.values())
+            experience["score"] = (0.5*sum(title_score.values()) + sum(experience_score.values()))*experience['duration']
             
+            experience_total_score += experience['score']
+
+        
         n_grams_title = [score_ngram(cross_ngrams(clean_string(query), clean_string(result["_source"]["title"])), 'title') for query in queries]
-        print(n_grams_title)
+        
         title_score = reduce(lambda a,b:a+b, n_grams_title)
-        print(title_score)
+        
         title_score = 0.8*sum(title_score.values())
+        
         profile["_source"] = {
             "title" : result["_source"]["title"],
             "title_score" : title_score,
             "experience" : experiences
         }
+        
         profile["skills"] = result["_source"]["skills"]
-
+        profile["total_score"] = experience_total_score + title_score + np.log(profile["_score"])
         profiles.append(profile)
-    #print(profiles)
+    
+    
+    tuples = [(x['_id'], x['total_score'], x) for x in profiles]
+
+    profiles = sorted(tuples, key = lambda tup:tup[1], reverse=True)
+
     with open('profiles.json','w') as f:
         json.dump(profiles,f)
-
-    
-
-
