@@ -5,6 +5,7 @@ import json
 from nltk.util import ngrams
 from collections import Counter
 import numpy as np
+from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize 
 import re
@@ -12,6 +13,7 @@ import string
 from functools import reduce
 
 stop_words = set(stopwords.words('french'))
+porter = PorterStemmer()
 
 import operator
 
@@ -31,7 +33,7 @@ def clean_string(text : str) -> str:
     
     word_tokens = word_tokenize(text) 
     
-    return " ".join([w for w in word_tokens if not w in stop_words])
+    return " ".join([porter.stem(w) for w in word_tokens if not w in stop_words])
 
 
 def search(query : str ) -> dict:
@@ -102,7 +104,9 @@ def sort_candidate(json_file):
 
 if __name__ == "__main__":
 
-    queries = ['data scientist', 'machine learning', 'deep learning']
+    #queries = [clean_string(query) for query in ['web devloppeur', 'developpeur web', 'Java', 'JEE'] ]
+    queries = [clean_string(query) for query in ['full stack', 'chef projet moa'] ]
+    
     search_res = search("OR".join(queries))
 
     results = search_res['hits']['hits']
@@ -112,7 +116,7 @@ if __name__ == "__main__":
 
 
     profiles = []
-    experienc_score = [1, 0.5, 0.25]
+    
     
     # calculate new score for each candidate from the results of elastic search
     for result in results:
@@ -123,7 +127,8 @@ if __name__ == "__main__":
         profile["_score"] = result["_score"]
         experiences = result["_source"]["experience"]
 
-        
+        experience_bonus = 1
+
         experience_total_score = 0
         for experience in experiences:
             n_grams = [score_ngram(cross_ngrams(clean_string(query), clean_string(experience['title'])), 'title') for query in queries]
@@ -132,16 +137,21 @@ if __name__ == "__main__":
             title_score = reduce(lambda a,b:a+b, n_grams)
             experience_score = reduce(lambda a,b: a+b, n_grams_experience)
 
-            experience["score"] = (0.5*sum(title_score.values()) + sum(experience_score.values()))*experience['duration']
+            experience["title_score"] = sum(title_score.values())
+            experience["exp_score"] = sum(experience_score.values())
+            #experience["score"] = (0.8*experience['duration'] * experience["title_score"] ) + experience["exp_score"]) + experience_bonus
+            experience["score"] = experience["title_score"]*experience['duration'] + experience_bonus + experience["exp_score"]
             
             experience_total_score += experience['score']
+
+            experience_bonus -= 1/len(experiences)
 
         
         n_grams_title = [score_ngram(cross_ngrams(clean_string(query), clean_string(result["_source"]["title"])), 'title') for query in queries]
         
         title_score = reduce(lambda a,b:a+b, n_grams_title)
         
-        title_score = 0.8*sum(title_score.values())
+        title_score = sum(title_score.values())
         
         profile["_source"] = {
             "title" : result["_source"]["title"],
@@ -150,7 +160,7 @@ if __name__ == "__main__":
         }
         
         #profile["skills"] = result["_source"]["skills"]
-        profile["total_score"] = experience_total_score + title_score + np.log(profile["_score"])
+        profile["total_score"] = experience_total_score + title_score 
         profiles.append(profile)
     
     
@@ -158,5 +168,5 @@ if __name__ == "__main__":
 
     profiles = sorted(tuples, key = lambda tup:tup[1], reverse=True)
 
-    with open('profiles.json','w') as f:
-        json.dump(profiles,f)
+    with open('profiles.json','w', encoding='utf8') as f:
+        json.dump(profiles,f, ensure_ascii=False)
