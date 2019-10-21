@@ -11,7 +11,7 @@ import re
 import string
 from functools import reduce
 
-stop_words = set(stopwords.words('english'))
+stop_words = set(stopwords.words('french'))
 
 import operator
 
@@ -102,7 +102,7 @@ def sort_candidate(json_file):
 
 if __name__ == "__main__":
 
-    queries = ['data scientist', 'machine learning']
+    queries = ['data scientist', 'machine learning', 'deep learning']
     search_res = search("OR".join(queries))
 
     results = search_res['hits']['hits']
@@ -149,7 +149,7 @@ if __name__ == "__main__":
             "experience" : experiences
         }
         
-        profile["skills"] = result["_source"]["skills"]
+        #profile["skills"] = result["_source"]["skills"]
         profile["total_score"] = experience_total_score + title_score + np.log(profile["_score"])
         profiles.append(profile)
     

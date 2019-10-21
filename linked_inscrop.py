@@ -35,8 +35,11 @@ page = []
 #experiences = driver.find_element_by_xpath("//ul[@class='pv-profile-section__section-info section-info pv-profile-section__section-info--has-no-more']")
 #experiences = driver.find_elements_by_class_name("pv-profile-section__section-info section-info pv-profile-section__section-info--has-no-more")
 #print(experiences)
-experiencess = [experience for experience in driver.find_elements_by_xpath("//section[@id='experience-section']/ul") ]
+
+experiencess = [experience for experience in driver.find_element_by_xpath("//section[@id='experience-section']/") ]
+print(experiencess)
 experiences = experiencess[0].find_elements_by_tag_name("li")
+
 #print(experiences)
 
 #for experience in experiences:
