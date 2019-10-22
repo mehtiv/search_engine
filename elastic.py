@@ -11,6 +11,7 @@ from nltk.tokenize import word_tokenize
 import re
 import string
 from functools import reduce
+from elasticsearch import Elasticsearch
 
 stop_words = set(stopwords.words('french'))
 porter = PorterStemmer()
@@ -54,9 +55,13 @@ def search(query : str ) -> dict:
     complete_url = solr_url + encoded_solr_tuples
     connection = urlopen(complete_url)
     raw_response = simplejson.load(connection)
-
+    print(complete_url)
     return raw_response
 
+
+def search_advanced(elastic, index, query):
+
+    return elastic.search(index=index ,body=query)
 
 def ngram_gen(input : str, gram:int =2) -> Counter:
     """[summary]
@@ -104,11 +109,18 @@ def sort_candidate(json_file):
 
 if __name__ == "__main__":
 
-    #queries = [clean_string(query) for query in ['web devloppeur', 'developpeur web', 'Java', 'JEE'] ]
-    queries = [clean_string(query) for query in ['full stack', 'chef projet moa'] ]
-    
-    search_res = search("OR".join(queries))
-
+    queries = [clean_string(query) for query in ["data scientist", "machine learning"] ]
+    #queries = [clean_string(query) for query in ['full stack', 'chef projet moa'] ]
+    es = Elasticsearch()
+    print(queries)
+    query = {
+                "match": {
+                "query": "data scientist",
+                }
+            
+    }
+    search_res = search_advanced(es, index='cv', query= query)
+    #search_res = search("OR".join(queries))
     results = search_res['hits']['hits']
     
     with open('hits.json','w') as f:
