@@ -55,7 +55,7 @@ def search(query : str ) -> dict:
     complete_url = solr_url + encoded_solr_tuples
     connection = urlopen(complete_url)
     raw_response = simplejson.load(connection)
-    print(complete_url)
+    #print(complete_url)
     return raw_response
 
 
@@ -112,15 +112,15 @@ if __name__ == "__main__":
     queries = [clean_string(query) for query in ["data scientist", "machine learning"] ]
     #queries = [clean_string(query) for query in ['full stack', 'chef projet moa'] ]
     es = Elasticsearch()
-    print(queries)
-    query = {
-                "match": {
-                "query": "data scientist",
-                }
+    #print(queries)
+    # query = {
+    #             "match": {
+    #             "query": "data scientist",
+    #             }
             
-    }
-    search_res = search_advanced(es, index='cv', query= query)
-    #search_res = search("OR".join(queries))
+    # }
+    #search_res = search_advanced(es, index='cv', query= query)
+    search_res = search("OR".join(queries))
     results = search_res['hits']['hits']
     
     with open('hits.json','w') as f:
