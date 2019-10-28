@@ -14,7 +14,7 @@ job_links_list = []
 with open("job_title_by_categories.json") as f:
     job_categories = json.load(f)
 
-for job_category in job_categories:
+for job_category in list(job_categories)[:5]:
     list_offers = []
     for job_title in job_categories[job_category]:
         for state in states:
