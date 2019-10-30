@@ -13,6 +13,13 @@ import string
 from functools import reduce
 from elasticsearch import Elasticsearch
 
+try:
+    stop_words = set(stopwords.words('french'))
+except RuntimeError:
+    import nltk
+    nltk.download('stopwords')
+    nltk.download('punkt')
+    
 stop_words = set(stopwords.words('french'))
 porter = PorterStemmer()
 

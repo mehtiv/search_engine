@@ -76,4 +76,4 @@ for profile in data:
 
     file.close()
 
-    es.index(index='cv', doc_type='Blog', id=i, body=file_profil)
+    es.index(index='cv', doc_type='Cv', id=i, body=file_profil)
